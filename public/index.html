@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="libs/jquery.js"></script>
+<script src="libs/jquery-mobile.js"></script>
+<script src="TicTacBoard.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script src="tictactoe.js"></script>
+<link rel="stylesheet" href="libs/jquery-mobile.css">
+</head>
+<body onLoad="initMatchmaking();">
+
+    <canvas id="myCanvas" width="600" height="600" style="border:1px solid #000000;">
+        Your browser does not support the HTML5 canvas tag.
+    </canvas>
+
+    <div class="numconnected"></div>
+</body>
+</html>

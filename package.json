@@ -1,0 +1,14 @@
+{
+  "name": "TicTacToe",
+  "subdomain": "bbeverly.tictactoe",
+  "scripts": {
+    "start": "protected/app.js"
+  },
+  "version": "0.0.1-4",
+  "engines": {
+    "node": "0.8.x"
+  },
+  "dependencies": {
+    "socket.io": "*"
+  }
+}
