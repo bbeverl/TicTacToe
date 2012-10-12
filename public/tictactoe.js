@@ -1,16 +1,11 @@
 var socket;
 
-var canvasSize, canvasWidth, canvasHeight;
-var oneThird, twoThird, leftOffset, topOffset;
-var canvasTop = 0, canvasLeft = 0
-
 var myGame;
-var playerId;
 var isBlocked = true;
 
-function initMatchmaking() {
+$(document).ready( function() {
 	$('#myCanvas').hide();
-	
+
 	$.mobile.loading( 'show', {
 		text: 'Finding match...',
 		textVisible: true,
@@ -18,42 +13,45 @@ function initMatchmaking() {
 		html: ""
 	});
 	
-	socket = io.connect('http://bbeverly.tictactoe.nodejitsu.com/');
-	//socket = io.connect('http://localhost:8080/');
+	//socket = io.connect('http://bbeverly.tictactoe.nodejitsu.com/');
+	socket = io.connect('http://localhost:8080/');
 	
 	socket.on('matchfound', function (data) {
 	  console.log(data);
-	  playerId = data.playerid;
 	  initGame(data.gameid, data.thisplayer, data.thatplayer);
 	  isBlocked = !data.first;
 	});
 	socket.on('peopleconnected', function(data) {
-		$('peopleconnected').div(data.message);
+		$('.peopleconnected').text(data.message);
 	});
+});
+function determineGridSize() {
+	ctx = $('#myCanvas')[0].getContext('2d');
+	cWidth = $('#myCanvas').width();
+    cHeight = $('#myCanvas').height();
+    
+    cOneThirdWidth = cWidth / 3;
+    cTwoThirdWidth = cOneThirdWidth * 2;
+    
+    cOneThirdHeight = cHeight / 3;
+    cTwoThirdHeight = cOneThirdHeight * 2;
 }
-
 function initGame(gameId, thisPlayer, thatPlayer) {
 	$('#myCanvas').show();
 	$.mobile.loading('hide');
-	canvasSize = $('#myCanvas').width(); 
-	canvasWidth = $('#myCanvas').width();
-	canvasHeight = $('#myCanvas').height();
-	
-	oneThird = canvasSize / 3;
-	twoThird = (canvasSize / 3) * 2;
+	determineGridSize();
 	
 	drawGrid();
+	
 	myGame = new TicTacBoard(gameId, thisPlayer, thatPlayer);
 
 	$('#myCanvas').click(function(e) {
         if(isBlocked != true) {            
-        	var quadrant = findQuadrant(e.pageX, e.pageY);
+        	var quadrant = findQuadrant(e.offsetX, e.offsetY);
         	doMove(quadrant, thisPlayer);
             isBlocked = true;	
             socket.emit('moveplayed', { 
             	quadrant: quadrant, 
-            	gameid: myGame.id,
-            	playerid: playerId
         	});
         }		
     });
@@ -68,10 +66,10 @@ function initGame(gameId, thisPlayer, thatPlayer) {
 	socket.on('win', function(data ) {
 		endGame(data.message);
 	});
-	socket.on('lose', function(data) {		
+	socket.on('lose', function(data) {
 		endGame(data.message);
 	});
-	socket.on('disco', function(data) {		
+	socket.on('disco', function(data) {
 		endGame(data.message);
 	});
 	
@@ -87,94 +85,97 @@ function doMove(quadrant, player, context) {
 	}      
 }
 
-function drawGrid() {
-    var ctx = $('#myCanvas')[0].getContext('2d');
-
-    ctx.moveTo(oneThird,canvasTop);
-    ctx.lineTo(oneThird, canvasHeight);
-    ctx.stroke();
-
-    ctx.moveTo(twoThird,canvasTop);
-    ctx.lineTo(twoThird, canvasHeight);
-    ctx.stroke();
-
-    ctx.moveTo(canvasLeft, oneThird);
-    ctx.lineTo(canvasWidth, oneThird);
-    ctx.stroke();
-
-    ctx.moveTo(canvasLeft, twoThird);
-    ctx.lineTo(canvasWidth,twoThird);
-    ctx.stroke();
-}
-function findQuadrant(xPos, yPos) {
+function findQuadrant(xPos, yPos) {	
     var quad = 9;
-    if(yPos < twoThird) {
+    if(yPos < cTwoThirdHeight) {
         quad -= 3;
     }
-    if (yPos < oneThird) {
+    if (yPos < cOneThirdHeight) {
         quad -= 3;
     }
-    if(xPos < twoThird) {
+    if(xPos < cTwoThirdWidth) {
         quad -= 1;
     }
-    if(xPos < oneThird) {
+    if(xPos < cOneThirdWidth) {
         quad -= 1;
     }
     return quad;
 }
 
+function drawGrid() {
+    ctx.beginPath();
+    ctx.moveTo(cOneThirdWidth,0);
+    ctx.lineTo(cOneThirdWidth, cHeight);
+    //ctx.stroke();
+
+    ctx.moveTo(cTwoThirdWidth, 0);
+    ctx.lineTo(cTwoThirdWidth, cHeight);
+    //ctx.stroke();
+   
+    ctx.moveTo(0, cOneThirdHeight);
+    ctx.lineTo(cWidth, cOneThirdHeight);
+    //ctx.stroke();
+
+    ctx.moveTo(0, cTwoThirdHeight);
+    ctx.lineTo(cWidth,cTwoThirdHeight);
+    
+    ctx.stroke();
+}
 
 function drawX(quadrant) {
-	var ctx = $('#myCanvas')[0].getContext('2d');
     var startX;
     var startY;
     if(quadrant < 4) {
-        startX = (quadrant - 1) * oneThird;
+        startX = (quadrant - 1) * cOneThirdWidth;
         startY = 0;
     }
     else if(quadrant >= 4 && quadrant < 7) {
-        startX = (quadrant - 4) * oneThird;
-        startY = oneThird;
+        startX = (quadrant - 4) * cOneThirdWidth;
+        startY = cOneThirdHeight;
     }
     else if(quadrant >= 7) {
-        startX = (quadrant - 7) * oneThird;
-        startY = twoThird;
+        startX = (quadrant - 7) * cOneThirdWidth;
+        startY = cTwoThirdHeight;
     }
     ctx.moveTo(startX,startY);
-    ctx.lineTo(startX + oneThird, startY + oneThird);
+    ctx.lineTo(startX + cOneThirdWidth, startY + cOneThirdHeight);
     ctx.stroke();
 
-    ctx.moveTo(startX + oneThird, startY);
-    ctx.lineTo(startX, startY + oneThird);
+    ctx.moveTo(startX + cOneThirdWidth, startY);
+    ctx.lineTo(startX, startY + cOneThirdHeight);
     ctx.stroke();
 }
 
 function drawO(quadrant) {
-	var ctx = $('#myCanvas')[0].getContext('2d');
     var startX;
     var startY;
     if(quadrant < 4) {
-        startX = (quadrant - 1) * oneThird;
+        startX = (quadrant - 1) * cOneThirdWidth;
         startY = 0;
     }
     else if(quadrant >= 4 && quadrant < 7) {
-        startX = (quadrant - 4) * oneThird;
-        startY = oneThird;
+        startX = (quadrant - 4) * cOneThirdWidth;
+        startY = cOneThirdHeight;
     }
     else if(quadrant >= 7) {
-        startX = (quadrant - 7) * oneThird;
-        startY = twoThird;
+        startX = (quadrant - 7) * cOneThirdWidth;
+        startY = cTwoThirdHeight;
     }
     ctx.beginPath();
-    ctx.arc(startX + (oneThird / 2),startY+(oneThird / 2),(oneThird / 2),0,2*Math.PI);
+    var radius;
+    if(cOneThirdWidth < cOneThirdHeight) {
+    	radius = (cOneThirdWidth / 2);
+    } else {
+    	radius = (cOneThirdHeight / 2);
+    }
+    ctx.arc(startX + (cOneThirdWidth / 2), startY+(cOneThirdHeight / 2), radius, 0, 2*Math.PI);
     ctx.stroke();
 }
 
 function resetBoard() {
 	myGame.resetBoard();
-	
-    var ctx = $('#myCanvas')[0].getContext('2d');
-    ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+
+    ctx.clearRect(0, 0, cWidth, cHeight);
     ctx.beginPath();
 	
     drawGrid();

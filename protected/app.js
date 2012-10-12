@@ -5,7 +5,7 @@ var app = require("http").createServer(appHandler),
     io = require("socket.io").listen(app),
     ttboard = require("./TicTacBoard");
 
-app.listen(80);
+app.listen(8080);
 
 var pendingGames = Array();
 var inProgressGames = new Object;
@@ -52,12 +52,13 @@ function appHandler(request, response) {
             response.writeHead(200, contentType );
             response.end(file, "binary");
         });
-    });
-};
+	});
+}
 
 io.sockets.on('connection', function(socket) {
 	peopleConnected++;
-	broadcastPeopleConnected
+	broadcastPeopleConnected();
+	console.log('Before Connect: pendingGames = ' + JSON.stringify(pendingGames) + 'inProgress = ' + JSON.stringify(inProgressGames));
 	if(pendingGames.length == 0) {
 		newGame = ttboard.create(new Date().getTime(), socket.id);
 		socket.gameid = newGame.id;
@@ -78,13 +79,13 @@ io.sockets.on('connection', function(socket) {
 		
 		io.sockets.socket(matchedGame.player1).emit('matchfound', {
 			gameid: matchedGame.id, 
-			playerid: matchedGame.player1, 
 			thisplayer: 'O',
 			thatplayer: 'X',
 			first: true,
 		});
 		
 	}
+	console.log('After Connect: pendingGames = ' + JSON.stringify(pendingGames) + 'inProgress = ' + JSON.stringify(inProgressGames));
 
 	socket.on('moveplayed', function (data) {					
 		var thisGame = inProgressGames[socket.gameid];		
@@ -104,7 +105,8 @@ io.sockets.on('connection', function(socket) {
 	
 	socket.on('disconnect', function() {	
 		peopleConnected--;
-		broadcastPeopleConnected
+		broadcastPeopleConnected();
+		console.log('Before Disco: pendingGames = ' + JSON.stringify(pendingGames) + 'inProgress = ' + JSON.stringify(inProgressGames));
 		if(socket.gameid == 'undefined') {			
 			return;
 		}
@@ -117,20 +119,13 @@ io.sockets.on('connection', function(socket) {
 			io.sockets.socket(thatPlayer).emit('disco', { message: 'You Win! Opponent resigned.' });
 		} else {	
 			pendingGameIndex = pendingGames.doesGameExist(socket.gameid);
-			console.log(pendingGameIndex);
 			if(pendingGameIndex != false || pendingGameIndex != 'undefined') {
 				pendingGames.splice(pendingGameIndex, 1);
 			}
-			console.log(pendingGames.toString());
 		}
-		
-		
+		console.log('After Disco: pendingGames = ' + JSON.stringify(pendingGames) + 'inProgress = ' + JSON.stringify(inProgressGames));
 	});
 });
-
-function broadcastPeopleConnected() {
-	io.sockets.emit('peopleconnected', { message: 'There are ' + peopleConnected + 'connected.' })
-}
 
 function endGame(thisGame, winner) {
 	
@@ -140,10 +135,14 @@ function endGame(thisGame, winner) {
 		var loser = determineThatPlayer(thisGame, winner);
 		sendWinLoseMessage(winner, loser);
 	}
-	
+
 	delete io.sockets.socket(thisGame.player1).gameid;
 	delete io.sockets.socket(thisGame.player2).gameid;
 	delete inProgressGames[thisGame.gameid];
+}
+
+function broadcastPeopleConnected() {
+	io.sockets.emit('peopleconnected', { message: 'There are ' + peopleConnected + ' people connected.' });
 }
 
 function sendMovePlayedMessage(thisGame, thisPlayer, quadrant) {
@@ -168,4 +167,3 @@ function determineThatPlayer(thisGame, thisPlayer) {
 		return thisGame.player1;
 	}
 }
-
