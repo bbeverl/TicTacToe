@@ -5,7 +5,7 @@ var app = require("http").createServer(appHandler),
     io = require("socket.io").listen(app),
     ttboard = require("./TicTacBoard");
 
-app.listen(8080);
+app.listen(80);
 
 var pendingGames = Array();
 var inProgressGames = new Object;

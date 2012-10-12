@@ -13,13 +13,19 @@ $(document).ready( function() {
 		html: ""
 	});
 	
-	//socket = io.connect('http://bbeverly.tictactoe.nodejitsu.com/');
-	socket = io.connect('http://localhost:8080/');
+	socket = io.connect('http://bbeverly.tictactoe.nodejitsu.com/');
+	//socket = io.connect('http://localhost:8080/');
 	
 	socket.on('matchfound', function (data) {
-	  console.log(data);
+	  console.log(data);	  
 	  initGame(data.gameid, data.thisplayer, data.thatplayer);
 	  isBlocked = !data.first;
+	  
+	  var alertmsg = "Match found!";
+	  if(data.first) {
+		  altermsg = altermsg + " You are first!";
+	  }
+	  alert( alertmsg );
 	});
 	socket.on('peopleconnected', function(data) {
 		$('.peopleconnected').text(data.message);
