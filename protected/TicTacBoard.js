@@ -24,12 +24,13 @@ TicTacBoard.prototype.isWinner = function (player) {
        if(player == this.board[winCombos[i][0]] && 
 		  player == this.board[winCombos[i][1]] &&
 		  player == this.board[winCombos[i][2]]) {
-            return true;
+            return i;
        }
    }
    
    return false;
 }
+
 
 TicTacBoard.prototype.isTie = function() {
 	for(var i = 1; i < 10; i++) {

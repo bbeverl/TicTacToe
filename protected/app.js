@@ -94,12 +94,13 @@ io.sockets.on('connection', function(socket) {
 		
 		thisGame.performMove(thisPlayer, quadrant);
 		
-		if(thisGame.isWinner(thisPlayer)) {
-			endGame(thisGame, thisPlayer);
+		sendMovePlayedMessage(thisGame, thisPlayer, quadrant);
+		
+		winningCombo = thisGame.isWinner(thisPlayer);
+		if(winningCombo !== false) {
+			endGame(thisGame, thisPlayer, winningCombo);
 		} else if(thisGame.isTie()) {
 			endGame(thisGame);
-		} else {
-			sendMovePlayedMessage(thisGame, thisPlayer, quadrant);
 		}
 	});
 	
@@ -127,13 +128,13 @@ io.sockets.on('connection', function(socket) {
 	});
 });
 
-function endGame(thisGame, winner) {
+function endGame(thisGame, winner, winningCombo) {
 	
-	if(winner == 'undefined') {
+	if(winner == undefined) {
 		sendTieMessage(thisGame);
 	} else {
 		var loser = determineThatPlayer(thisGame, winner);
-		sendWinLoseMessage(winner, loser);
+		sendWinLoseMessage(winner, loser, winningCombo);
 	}
 
 	delete io.sockets.socket(thisGame.player1).gameid;
@@ -150,9 +151,9 @@ function sendMovePlayedMessage(thisGame, thisPlayer, quadrant) {
 	io.sockets.socket(thatPlayer).emit('moveplayed', { quadrant: quadrant });
 }
 
-function sendWinLoseMessage(winner, loser) {
-	io.sockets.socket(winner).emit('win', { message: 'Congratulations! You Win!' });
-	io.sockets.socket(loser).emit('lose', { message: 'You Lose!' });
+function sendWinLoseMessage(winner, loser, winningCombo) {
+	io.sockets.socket(winner).emit('win', { message: 'Congratulations! You Win!', combo: winningCombo });
+	io.sockets.socket(loser).emit('lose', { message: 'You Lose!', combo: winningCombo });
 }
 
 function sendTieMessage(thisGame) {

@@ -61,12 +61,15 @@ function initGame(gameId, thisPlayer, thatPlayer) {
 		  isBlocked = false;
 	});
 	socket.on('tie', function(data) {
+		drawTie();
 		endGame(data.message);
 	});
-	socket.on('win', function(data ) {
+	socket.on('win', function(data) {
+		drawWinningLine(true, data.combo);
 		endGame(data.message);
 	});
 	socket.on('lose', function(data) {
+		drawWinningLine(false, data.combo);
 		endGame(data.message);
 	});
 	socket.on('disco', function(data) {
@@ -170,6 +173,81 @@ function drawO(quadrant) {
     }
     ctx.arc(startX + (cOneThirdWidth / 2), startY+(cOneThirdHeight / 2), radius, 0, 2*Math.PI);
     ctx.stroke();
+}
+
+function drawWinningLine(won, winningCombo) {
+
+    if(winningCombo == undefined) {
+    	return;
+    }
+    if(won) {
+    	ctx.strokeStyle = "#0000FF";
+    } else {
+    	ctx.strokeStyle = "#FF0000";
+    }
+    
+    var startX;
+    var startY;
+    var endX;
+    var endY;
+    if(winningCombo == 0) {
+    	startX = 0;
+    	endX = cWidth;
+    	startY = endY = (cOneThirdHeight / 2);
+    } else if(winningCombo == 1) {
+    	startX = endX =  (cOneThirdWidth / 2);
+    	startY = 0;
+    	endY = cHeight;
+    } else if(winningCombo == 2) {
+    	startX = startY = 0;
+    	endX = cWidth;
+    	endY = cHeight;
+    } else if(winningCombo == 3) {
+    	startX = 0;
+    	endX = cWidth;
+    	startY = endY = (cOneThirdHeight / 2) + cOneThirdHeight;
+    } else if(winningCombo == 4) {
+    	startX = 0;
+    	endX = cWidth;
+    	startY = endY = (cOneThirdHeight / 2) + cTwoThirdHeight;
+    } else if(winningCombo == 5) {
+    	startX = endX =  (cOneThirdWidth / 2) + cOneThirdWidth;
+    	startY = 0;
+    	endY = cHeight;
+    } else if(winningCombo == 6) {
+    	startX = endX =  (cOneThirdWidth / 2) + cTwoThirdWidth;
+    	startY = 0;
+    	endY = cHeight;    	
+    } else if(winningCombo == 7) {
+    	startX = cWidth;
+    	startY = 0;
+    	endX = 0;
+    	endY = cHeight;
+    }
+    
+    ctx.beginPath();
+    
+    ctx.moveTo(startX, startY);
+    ctx.lineTo(endX,endY);
+    
+    ctx.stroke();
+    ctx.strokeStyle = "#000000";
+}
+
+function drawTie() {
+	ctx.strokeStyle = "#00FFFF";
+	ctx.beginPath();
+	
+	var radius;
+    if(cWidth < cHeight) {
+    	radius = (cWidth / 4);
+    } else {
+    	radius = (cHeight / 4);
+    }
+    
+	ctx.arc((cWidth / 2), (cHeight / 2), radius, 0.2*Math.PI,1.7*Math.PI);
+	ctx.stroke();
+	ctx.strokeStyle = "#000000";
 }
 
 function resetBoard() {
