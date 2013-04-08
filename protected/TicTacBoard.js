@@ -2,16 +2,32 @@ var TicTacBoard = function (id, player1, player2) {
 	this.player1 = player1;	
 	this.player2 = player2;
 	
+	this.turn = player1;
+	
 	this.id = id;	
 	this.board = new Array();
 }
 
+TicTacBoard.prototype.setPlayer1 = function(player) {
+	this.player1 = player;
+}
+
+TicTacBoard.prototype.setPlayer2 = function(player) {
+	this.player2 = player;
+}
+
+TicTacBoard.prototype.isTurn = function(player) {
+	return this.turn == player;
+}
+
 TicTacBoard.prototype.performMove = function(player, quadrant) {
-	if(quadrant == undefined) {
+	if(quadrant == undefined || !this.isTurn(player)) {
 		return false;
 	}
+	
 	if (this.board[quadrant] == null) {
 	    this.board[quadrant] = player;
+	    this.switchTurn();
 	    return true;
     } else {
     	return false;
@@ -31,7 +47,6 @@ TicTacBoard.prototype.isWinner = function (player) {
    return false;
 }
 
-
 TicTacBoard.prototype.isTie = function() {
 	for(var i = 1; i < 10; i++) {
 		if(this.board[i] == null) {
@@ -48,12 +63,12 @@ TicTacBoard.prototype.resetBoard = function() {
 	}
 }
 
-TicTacBoard.prototype.setPlayer1 = function(player) {
-	this.player1 = player;
-}
-
-TicTacBoard.prototype.setPlayer2 = function(player) {
-	this.player2 = player;
+TicTacBoard.prototype.switchTurn = function() {
+	if(this.turn == this.player1) {
+		this.turn = this.player2;
+	} else {
+		this.turn = this.player1;
+	}
 }
 
 module.exports._class = TicTacBoard;

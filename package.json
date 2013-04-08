@@ -1,6 +1,6 @@
 {
   "name": "TicTacToe",
-  "subdomain": "bbeverly.tictactoe",
+  "subdomain": "",
   "scripts": {
     "start": "protected/app.js"
   },

@@ -1,7 +1,19 @@
-body {
-    margin:200px 0px;
-    padding:0px;
-    text-align:center;
+
+.header {
+    width: 100%;
+    height: 50px;
+    top: 0px;
+    margin-bottom: 50px;
+}
+
+.inner {
+	text-align:center;
+	margin:auto;
+	width:900px;
+}
+
+.peopleconnected {
+	margin-bottom: 25px;
 }
     
 

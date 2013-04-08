@@ -2,12 +2,12 @@ var app = require("http").createServer(appHandler),
     url = require("url"),
     path = require("path"),
     fs = require("fs"),
-    io = require("socket.io").listen(app),
+    io = require("socket.io").listen(app, { log: false }),
     ttboard = require("./TicTacBoard");
 
-app.listen(80);
+app.listen(8080);
 
-var pendingGames = Array();
+var pendingGames = new Array();
 var inProgressGames = new Object;
 var peopleConnected = 0;
 Array.prototype.doesGameExist = function(gameId) {
@@ -19,6 +19,7 @@ Array.prototype.doesGameExist = function(gameId) {
 	}
 	return false;
 }
+
 function appHandler(request, response) {
     var uri = url.parse(request.url).pathname;
     if (uri == 'undefined' || uri == null || uri == '/') {
@@ -58,11 +59,13 @@ function appHandler(request, response) {
 io.sockets.on('connection', function(socket) {
 	peopleConnected++;
 	broadcastPeopleConnected();
-	console.log('Before Connect: pendingGames = ' + JSON.stringify(pendingGames) + 'inProgress = ' + JSON.stringify(inProgressGames));
+	//console.log('Before Connect: pendingGames = ' + JSON.stringify(pendingGames) + 'inProgress = ' + JSON.stringify(inProgressGames));
+	console.log(socket.id + ' player Connected ' + peopleConnected);
 	if(pendingGames.length == 0) {
 		newGame = ttboard.create(new Date().getTime(), socket.id);
 		socket.gameid = newGame.id;
 		pendingGames.push(newGame);
+		console.log('New Game Created ' + newGame.id);
 	} else {
 		matchedGame = pendingGames.pop();
 		socket.gameid = matchedGame.id;
@@ -83,53 +86,57 @@ io.sockets.on('connection', function(socket) {
 			thatplayer: 'X',
 			first: true,
 		});
-		
+		console.log('Game Matched ' + matchedGame.id);
 	}
-	console.log('After Connect: pendingGames = ' + JSON.stringify(pendingGames) + 'inProgress = ' + JSON.stringify(inProgressGames));
+	//console.log('After Connect: pendingGames = ' + JSON.stringify(pendingGames) + 'inProgress = ' + JSON.stringify(inProgressGames));
 
 	socket.on('moveplayed', function (data) {					
 		var thisGame = inProgressGames[socket.gameid];		
 		var thisPlayer = socket.id;
 		var quadrant = data.quadrant;
 		
-		thisGame.performMove(thisPlayer, quadrant);
-		
-		sendMovePlayedMessage(thisGame, thisPlayer, quadrant);
-		
-		winningCombo = thisGame.isWinner(thisPlayer);
-		if(winningCombo !== false) {
-			endGame(thisGame, thisPlayer, winningCombo);
-		} else if(thisGame.isTie()) {
-			endGame(thisGame);
-		}
+		if(thisGame.performMove(thisPlayer, quadrant)) {
+			sendMovePlayedMessage(thisGame, thisPlayer, quadrant);
+			
+			winningCombo = thisGame.isWinner(thisPlayer);
+			if(winningCombo !== false) {
+				endGame(thisGame, thisPlayer, winningCombo);
+			} else if(thisGame.isTie()) {
+				endGame(thisGame);
+			}	
+		}		
 	});
 	
 	socket.on('disconnect', function() {	
 		peopleConnected--;
 		broadcastPeopleConnected();
-		console.log('Before Disco: pendingGames = ' + JSON.stringify(pendingGames) + 'inProgress = ' + JSON.stringify(inProgressGames));
-		if(socket.gameid == 'undefined') {			
+		//console.log('Before Disco: pendingGames = ' + JSON.stringify(pendingGames) + 'inProgress = ' + JSON.stringify(inProgressGames));
+		if(!socket.hasOwnProperty('gameid')) {
+			console.log('Unknown Game Disconnected ' + peopleConnected);
 			return;
 		}
 		
-		if(inProgressGames.hasOwnProperty(socket.gameid)) {			
+		if(inProgressGames.hasOwnProperty(socket.gameid)) {	
+			console.log(socket.id + ' has quit game ' + socket.gameid + " : connected " + peopleConnected);
 			var thisGame = inProgressGames[socket.gameid];
 			var thatPlayer = determineThatPlayer(thisGame, socket.id);
 			delete inProgressGames[socket.gameid];
 			delete io.sockets.socket(thatPlayer).gameid;
 			io.sockets.socket(thatPlayer).emit('disco', { message: 'You Win! Opponent resigned.' });
 		} else {	
-			pendingGameIndex = pendingGames.doesGameExist(socket.gameid);
-			if(pendingGameIndex != false || pendingGameIndex != 'undefined') {
+			console.log(socket.id + ' the unmatched player has left ' + peopleConnected);
+			pendingGameIndex = pendingGames.indexOf(socket.gameid);
+			//if(pendingGameIndex != false || pendingGameIndex != 'undefined') {
+			if(pendingGameIndex != -1) {
+				console.log('Removing Pending Game ' + socket.gameid);
 				pendingGames.splice(pendingGameIndex, 1);
 			}
 		}
-		console.log('After Disco: pendingGames = ' + JSON.stringify(pendingGames) + 'inProgress = ' + JSON.stringify(inProgressGames));
+		//console.log('After Disco: pendingGames = ' + JSON.stringify(pendingGames) + 'inProgress = ' + JSON.stringify(inProgressGames));
 	});
 });
 
 function endGame(thisGame, winner, winningCombo) {
-	
 	if(winner == undefined) {
 		sendTieMessage(thisGame);
 	} else {
@@ -147,8 +154,10 @@ function broadcastPeopleConnected() {
 }
 
 function sendMovePlayedMessage(thisGame, thisPlayer, quadrant) {
-	var thatPlayer = determineThatPlayer(thisGame, thisPlayer);			
-	io.sockets.socket(thatPlayer).emit('moveplayed', { quadrant: quadrant });
+	var thatPlayer = determineThatPlayer(thisGame, thisPlayer);
+	var moveSymbol = determineMoveSymbol(thisGame, thisPlayer);
+	io.sockets.socket(thisPlayer).emit('moveplayed', { quadrant: quadrant, move: moveSymbol, block: true });
+	io.sockets.socket(thatPlayer).emit('moveplayed', { quadrant: quadrant, move: moveSymbol, block: false });
 }
 
 function sendWinLoseMessage(winner, loser, winningCombo) {
@@ -166,5 +175,13 @@ function determineThatPlayer(thisGame, thisPlayer) {
 		return thisGame.player2;
 	} else {
 		return thisGame.player1;
+	}
+}
+
+function determineMoveSymbol(thisGame, thisPlayer) {
+	if(thisPlayer == thisGame.player1) {
+		return 'X';
+	} else {
+		return 'O';
 	}
 }

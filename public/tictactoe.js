@@ -1,6 +1,5 @@
 var socket;
 
-var myGame;
 var isBlocked = true;
 
 $(document).ready( function() {
@@ -13,13 +12,14 @@ $(document).ready( function() {
 		html: ""
 	});
 	
-	socket = io.connect('http://bbeverly.tictactoe.nodejitsu.com/');
-	//socket = io.connect('http://localhost:8080/');
+	host = document.location.hostname;
+	socket = io.connect(host);
 	
 	socket.on('matchfound', function (data) {
 	  console.log(data);	  
 	  initGame(data.gameid, data.thisplayer, data.thatplayer);
 	  isBlocked = !data.first;
+	  updateIndicator();
 	  
 	  var alertmsg = "Match found!";
 	  if(data.first) {
@@ -31,6 +31,7 @@ $(document).ready( function() {
 		$('.peopleconnected').text(data.message);
 	});
 });
+
 function determineGridSize() {
 	ctx = $('#myCanvas')[0].getContext('2d');
 	cWidth = $('#myCanvas').width();
@@ -42,19 +43,18 @@ function determineGridSize() {
     cOneThirdHeight = cHeight / 3;
     cTwoThirdHeight = cOneThirdHeight * 2;
 }
+
 function initGame(gameId, thisPlayer, thatPlayer) {
 	$('#myCanvas').show();
 	$.mobile.loading('hide');
+	
 	determineGridSize();
 	
 	drawGrid();
 	
-	myGame = new TicTacBoard(gameId, thisPlayer, thatPlayer);
-
 	$('#myCanvas').click(function(e) {
         if(isBlocked != true) {            
-        	var quadrant = findQuadrant(e.offsetX, e.offsetY);
-        	doMove(quadrant, thisPlayer);
+        	var quadrant = findQuadrant(e.offsetX, e.offsetY);        	
             isBlocked = true;	
             socket.emit('moveplayed', { 
             	quadrant: quadrant, 
@@ -63,8 +63,9 @@ function initGame(gameId, thisPlayer, thatPlayer) {
     });
 	socket.on('moveplayed', function (data) {
 		  console.log(data);
-		  doMove(data.quadrant, thatPlayer);
-		  isBlocked = false;
+		  doMove(data.quadrant, data.move);
+		  isBlocked = data.block;
+		  updateIndicator();
 	});
 	socket.on('tie', function(data) {
 		drawTie();
@@ -84,14 +85,12 @@ function initGame(gameId, thisPlayer, thatPlayer) {
 	
 }
 
-function doMove(quadrant, player, context) {	
-	if(myGame.performMove(player, quadrant)) {
-	    if(player == 'X') {
-	        drawX(quadrant);
-	    } else {
-	        drawO(quadrant);
-	    }   	
-	}      
+function doMove(quadrant, player) {	
+    if(player == 'X') {
+        drawX(quadrant);
+    } else {
+        drawO(quadrant);
+    }   	
 }
 
 function findQuadrant(xPos, yPos) {	
@@ -115,15 +114,12 @@ function drawGrid() {
     ctx.beginPath();
     ctx.moveTo(cOneThirdWidth,0);
     ctx.lineTo(cOneThirdWidth, cHeight);
-    //ctx.stroke();
 
     ctx.moveTo(cTwoThirdWidth, 0);
     ctx.lineTo(cTwoThirdWidth, cHeight);
-    //ctx.stroke();
    
     ctx.moveTo(0, cOneThirdHeight);
     ctx.lineTo(cWidth, cOneThirdHeight);
-    //ctx.stroke();
 
     ctx.moveTo(0, cTwoThirdHeight);
     ctx.lineTo(cWidth,cTwoThirdHeight);
@@ -257,7 +253,6 @@ function drawTie() {
 }
 
 function resetBoard() {
-	myGame.resetBoard();
 
     ctx.clearRect(0, 0, cWidth, cHeight);
     ctx.beginPath();
@@ -272,4 +267,12 @@ function endGame(message) {
 }
 function alertUser(message) {
 	alert(message);
+}
+
+function updateIndicator() {
+	if(isBlocked) {
+		$('.turnindicator').text('Please wait for opponent');
+	} else {
+		$('.turnindicator').text('Your move, son');
+	}
 }
